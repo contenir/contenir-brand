@@ -94,4 +94,4 @@ composer test-coverage     # both suites, clover.xml for Codecov
 
 ## License
 
-BSD-3-Clause.
+BSD-3-Clause. See [LICENSE.md](LICENSE.md).

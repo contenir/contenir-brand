@@ -27,6 +27,7 @@ and the php-db QA toolchain shared by all Contenir 2.x packages. See
 
 ### Added
 
+- `LICENSE.md` (BSD-3-Clause, as declared in composer.json).
 - Continuous integration on PHP 8.3, 8.4 and 8.5 against lowest, locked and
   latest dependencies, with coverage reported to Codecov.
 - Separate unit and integration (real files in a temporary web root) test
