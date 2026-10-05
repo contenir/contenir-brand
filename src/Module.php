@@ -10,8 +10,10 @@ use Laminas\ServiceManager\Factory\InvokableFactory;
  * Laminas component wiring. Registers the brand view helpers; the favicon set is
  * driven by the files actually present in the web root plus the `site.brand`
  * colour settings, so one helper serves every site.
+ *
+ * @api
  */
-class Module
+final class Module
 {
     /**
      * @return array<string, mixed>

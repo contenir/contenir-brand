@@ -2,6 +2,7 @@
     "name": "contenir/contenir-brand",
     "description": "Contenir brand head tags — favicon set + theme/brand colours",
     "license": "BSD-3-Clause",
+    "type": "library",
     "keywords": [
         "contenir",
         "laminas",
@@ -14,25 +15,17 @@
         "issues": "https://contenir.com.au/issues",
         "source": "https://github.com/contenir/contenir-brand"
     },
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
-    },
-    "extra": {
-        "laminas": {
-            "component": "Contenir\\Brand"
-        }
-    },
     "require": {
-        "php": "^8.1",
+        "php": "~8.3.0 || ~8.4.0 || ~8.5.0",
+        "laminas/laminas-servicemanager": "^3.22",
         "laminas/laminas-view": "^2.35"
     },
     "require-dev": {
-        "laminas/laminas-coding-standard": "^3.0",
-        "phpunit/phpunit": "^10.5"
+        "php-db/phpdb-qa-tools": "0.1.x-dev",
+        "phpunit/phpunit": "^11.5.42"
     },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "Contenir\\Brand\\": "src/"
@@ -40,12 +33,41 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Contenir\\Brand\\Test\\": "test/"
+            "Contenir\\Brand\\Test\\": "tests/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.3.99"
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "2.0.x-dev"
+        },
+        "laminas": {
+            "component": "Contenir\\Brand"
         }
     },
     "scripts": {
-        "cs-check": "phpcs",
-        "cs-fix": "phpcbf",
-        "test": "phpunit --colors=always"
+        "check": [
+            "@cs-check",
+            "@static-analysis",
+            "@test",
+            "@test-integration"
+        ],
+        "cs-check": [
+            "mago format --check",
+            "mago lint"
+        ],
+        "cs-fix": [
+            "mago format",
+            "mago lint --fix"
+        ],
+        "static-analysis": "mago analyze",
+        "test": "phpunit --colors=always --testsuite unit",
+        "test-integration": "phpunit --colors=always --testsuite integration",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
     }
 }
