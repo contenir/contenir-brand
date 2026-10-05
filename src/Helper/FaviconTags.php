@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Contenir\Brand\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
+use Laminas\View\Renderer\PhpRenderer;
 
 use function getcwd;
 use function is_file;
+use function is_object;
+use function is_scalar;
 use function sprintf;
 use function str_replace;
 
@@ -27,6 +30,10 @@ use function str_replace;
  *
  * Icon hrefs are fixed root paths from {@see ICONS} (no user input); colour
  * values from settings are stripped of attribute-breaking characters.
+ *
+ * @api
+ *
+ * @mago-expect analysis:deprecated-class laminas-view 2.x injects the renderer, which reads the Settings helper, only into AbstractHelper subclasses.
  */
 final class FaviconTags extends AbstractHelper
 {
@@ -36,73 +43,55 @@ final class FaviconTags extends AbstractHelper
      *
      * @var list<array{0: string, 1: string, 2: ?string, 3: ?string}>
      */
-    private const ICONS = [
-        ['favicon.svg', 'icon', 'image/svg+xml', null],
-        ['favicon-96x96.png', 'icon', 'image/png', '96x96'],
-        ['favicon-48x48.png', 'icon', 'image/png', '48x48'],
-        ['favicon-32x32.png', 'icon', 'image/png', '32x32'],
-        ['favicon-16x16.png', 'icon', 'image/png', '16x16'],
-        ['favicon.ico', 'shortcut icon', null, null],
-        ['apple-touch-icon.png', 'apple-touch-icon', null, '180x180'],
+    private const array ICONS = [
+        ['favicon.svg',          'icon',             'image/svg+xml', null],
+        ['favicon-96x96.png',    'icon',             'image/png',     '96x96'],
+        ['favicon-48x48.png',    'icon',             'image/png',     '48x48'],
+        ['favicon-32x32.png',    'icon',             'image/png',     '32x32'],
+        ['favicon-16x16.png',    'icon',             'image/png',     '16x16'],
+        ['favicon.ico',          'shortcut icon',    null,            null],
+        ['apple-touch-icon.png', 'apple-touch-icon', null,            '180x180'],
     ];
 
     /**
      * @param string|null $publicPath Web root holding the generated favicons;
      *                                defaults to <cwd>/public. Injectable for tests.
      */
-    public function __construct(private ?string $publicPath = null)
+    public function __construct(
+        private ?string $publicPath = null,
+    ) {}
+
+    /**
+     * A scalar brand setting as a string, or the default when it is missing
+     * or not scalar.
+     *
+     * @mago-expect analysis:mixed-assignment Brand settings are untyped CMS data; checked with is_scalar().
+     * @mago-expect analysis:string-member-selector The setting name is one of three fixed keys.
+     */
+    private static function setting(?object $brand, string $name, string $default): string
     {
+        $value = $brand->{$name} ?? $default;
+
+        return is_scalar($value) ? (string) $value : $default;
     }
 
-    public function __invoke(): string
+    /**
+     * The `site.brand` settings object from the renderer's Settings helper,
+     * or null without a PHP renderer or when the settings have no brand.
+     *
+     * @mago-expect analysis:mixed-assignment The Settings helper returns untyped CMS settings.
+     * @mago-expect analysis:non-documented-method Settings is a view helper, called through PhpRenderer::__call().
+     */
+    private function brandSettings(): ?object
     {
-        $brand  = $this->getView()->Settings()->site->brand ?? null;
-        $public = $this->publicPath ?? getcwd() . '/public';
-
-        $themeColor = $this->colour((string) ($brand?->theme_color ?? '#ffffff'));
-        $tileColor  = $this->colour((string) ($brand?->tile_color ?? ''));
-        $maskColor  = $this->colour((string) ($brand?->mask_color ?? '#000000'));
-
-        $out = $this->meta('theme-color', $themeColor);
-        if ($tileColor !== '') {
-            $out .= $this->meta('msapplication-TileColor', $tileColor);
+        $view = $this->getView();
+        if (! $view instanceof PhpRenderer) {
+            return null;
         }
 
-        foreach (self::ICONS as [$file, $rel, $type, $sizes]) {
-            if (is_file($public . '/' . $file)) {
-                $out .= $this->link($rel, '/' . $file, $type, $sizes, null);
-            }
-        }
+        $brand = $view->Settings()->site->brand ?? null;
 
-        if (is_file($public . '/safari-pinned-tab.svg')) {
-            $out .= $this->link('mask-icon', '/safari-pinned-tab.svg', null, null, $maskColor);
-        }
-        if (is_file($public . '/site.webmanifest')) {
-            $out .= $this->link('manifest', '/site.webmanifest', null, null, null);
-        }
-
-        return $out;
-    }
-
-    private function meta(string $name, string $content): string
-    {
-        return sprintf('<meta name="%s" content="%s">' . "\n", $name, $content);
-    }
-
-    private function link(string $rel, string $href, ?string $type, ?string $sizes, ?string $color): string
-    {
-        $attr = sprintf('rel="%s" href="%s"', $rel, $href);
-        if ($type !== null) {
-            $attr .= sprintf(' type="%s"', $type);
-        }
-        if ($sizes !== null) {
-            $attr .= sprintf(' sizes="%s"', $sizes);
-        }
-        if ($color !== null && $color !== '') {
-            $attr .= sprintf(' color="%s"', $color);
-        }
-
-        return '<link ' . $attr . '>' . "\n";
+        return is_object($brand) ? $brand : null;
     }
 
     /**
@@ -112,6 +101,67 @@ final class FaviconTags extends AbstractHelper
      */
     private function colour(string $value): string
     {
-        return str_replace(['"', '<', '>', '&', "\n", "\r"], '', $value);
+        return str_replace(['"', '<', '>', '&', "\n", "\r"], replace: '', subject: $value);
+    }
+
+    private function link(
+        string $rel,
+        string $href,
+        ?string $type = null,
+        ?string $sizes = null,
+        string $color = '',
+    ): string {
+        $attr = sprintf('rel="%s" href="%s"', $rel, $href);
+        if (null !== $type) {
+            $attr .= sprintf(' type="%s"', $type);
+        }
+
+        if (null !== $sizes) {
+            $attr .= sprintf(' sizes="%s"', $sizes);
+        }
+
+        if ('' !== $color) {
+            $attr .= sprintf(' color="%s"', $color);
+        }
+
+        return "<link {$attr}>\n";
+    }
+
+    private function meta(string $name, string $content): string
+    {
+        return sprintf('<meta name="%s" content="%s">' . "\n", $name, $content);
+    }
+
+    public function __invoke(): string
+    {
+        $brand  = $this->brandSettings();
+        $public = $this->publicPath ?? (string) getcwd() . '/public';
+
+        $themeColor = $this->colour(self::setting($brand, 'theme_color', default: '#ffffff'));
+        $tileColor  = $this->colour(self::setting($brand, 'tile_color', default: ''));
+        $maskColor  = $this->colour(self::setting($brand, 'mask_color', default: '#000000'));
+
+        $out = $this->meta('theme-color', $themeColor);
+        if ('' !== $tileColor) {
+            $out .= $this->meta('msapplication-TileColor', $tileColor);
+        }
+
+        foreach (self::ICONS as [$file, $rel, $type, $sizes]) {
+            if (! is_file("{$public}/{$file}")) {
+                continue;
+            }
+
+            $out .= $this->link($rel, "/{$file}", $type, $sizes);
+        }
+
+        if (is_file("{$public}/safari-pinned-tab.svg")) {
+            $out .= $this->link('mask-icon', '/safari-pinned-tab.svg', color: $maskColor);
+        }
+
+        if (is_file("{$public}/site.webmanifest")) {
+            $out .= $this->link('manifest', '/site.webmanifest');
+        }
+
+        return $out;
     }
 }

@@ -1,5 +1,6 @@
-/vendor/
-composer.lock
-.phpunit.result.cache
-.phpcs-cache
 .DS_Store
+.idea
+/.phpunit.cache/
+/clover.xml
+/phpunit.xml
+/vendor/
