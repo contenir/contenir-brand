@@ -90,6 +90,7 @@ composer static-analysis   # mago analyze
 composer test              # unit suite: module configuration, no I/O
 composer test-integration  # integration suite: real icon files in a temp directory
 composer test-coverage     # both suites, clover.xml for Codecov
+composer mutation-test     # Infection mutation testing over both suites
 ```
 
 ## License
