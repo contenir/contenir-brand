@@ -1,0 +1,28 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "timeout": 10,
+    "threads": "max",
+    "logs": {
+        "text": "infection.log",
+        "summary": "summary.log",
+        "stryker": {
+            "badge": "/^(main|master)$/"
+        }
+    },
+    "mutators": {
+        "@default": true,
+        "CastString": {
+            "ignoreSourceCodeByRegex": [
+                // Equivalent: getcwd() returns string|false and concatenation already turns false into "",
+                // so the explicit cast only satisfies static analysis and cannot change the result.
+                "\\$public = \\$this->publicPath \\?\\? \\(string\\) getcwd\\(\\) \\. '/public';"
+            ]
+        }
+    },
+    "staticAnalysisTool": "mago"
+}
